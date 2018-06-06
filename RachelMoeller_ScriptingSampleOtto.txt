@@ -1,0 +1,380 @@
+/* Rachel Moeller
+rachelpmoeller@gmail.com
+www.rachelparrishmoeller.com
+
+Scripting Sample: Otto the Combo Butler
+
+This is a Unity C# sample from a 3D puzzle game, Otto the Combo Butler, that I worked on with a
+team of 5. There were two other programmers on the team. I designed and implemented the following
+puzzle system architecture and populated it with the 6 puzzles in the game.
+
+In Otto, the player navigates a 3D apartment complex to find and carry two objects each matching
+a description provided by an NPC in the world. They must find the two objects matching the 
+descriptors, combine them, and return the newly combined object to the NPC. There is only one correct
+combination for each puzzle, and only two items can be combined at a time.
+
+This excerpt from the main game controller is the function that checks if two items can successfully be
+combined.Comments have been added to provide context.
+
+Link to the game: https://www.rachelparrishmoeller.com/ottocombobutler
+*/
+
+/********************************************
+         * Combine()
+         * *****************************************/
+
+ void Combine() {
+        //This function compares the items the player is holding. If they match the current set of requestors,
+	//create the new combination item and play the feedback sequence. If not, show an error.
+
+	//Press space to attempt a combine.
+        if (Input.GetKeyDown(KeyCode.Space)) {
+
+	//MyObjects is the list of all things the player is currently holding.
+            objectInfo = MyObjects[0].GetComponent<myInfo>();    //the label of the object we're referring to a lot here on out
+            secondObjectInfo = MyObjects[1].GetComponent<myInfo>();     //the second thing you picked up
+	
+	//Based on which puzzle this is...
+            switch (taskNum) {
+                case 1: {
+
+                        //The player was supposed to find the "clean" and "dirty" objects in the world and combine them.
+			//Also make sure they are holding exactly two objects.
+                        if (checkMatchingTags("clean", "dirty") && MyObjects.Count <= 2) {
+                            
+			    //The player was successful!
+
+			    //Log some data so we can tweak the levels later. Then reset those metrics.
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Puzzle 1 Solve Time (sec)", (puzzle1Timer / 60).ToString());
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Wrong Combination Attempts To Puzzle 1", numWrongCombos.ToString());
+                            numWrongCombos = 0;
+                            puzzle1Timer = 0;
+
+                            //Remove old objects and replace with the new object, which goes directly infront of the camera.
+                            Vector3 pos = MyObjects[0].transform.position;
+                            GameObject temp = Instantiate(puzzle1_result, transform.position + (transform.forward * 1.5f), transform.rotation);
+                            temp.GetComponent<myInfo>().label = "Tidies"; //Set the display name of the object
+                            temp.name = "SlimyCucumber"; //Set the internal identifier.
+
+                            //Play some sounds for feedback.
+                            testAudio1.clip = comboSuccess;
+                            testAudio1.Play();
+                            testAudio2.clip = combo1;
+                            testAudio2.Play();
+
+                            //Play some particles
+                            presentGet.transform.position = temp.transform.position;
+                            presentGet.Play();
+                            presentGet2.transform.position = temp.transform.position;
+                            presentGet2.Play();
+                            presentGet3.transform.position = temp.transform.position;
+                            presentGet3.Play();
+                            presentGet4.transform.position = temp.transform.position;
+                            presentGet4.Play();
+
+			    //Set up logic for another programmer's restart function.
+                            temp.GetComponent<myInfo>().partiStart = true;
+
+			    //Call this function which loops through all the items that the player was carrying and 
+			    //makes sure they are reset to default physics and logic.
+                            detachItems();
+
+			    //Call this function which resets the camera to default and releases all children (how
+			    //the player carries objects.)
+                            cleanCam();
+
+			    //Set the physics on the newly combined object
+                            temp.GetComponent<Rigidbody>().useGravity = false;
+                            temp.GetComponent<Rigidbody>().freezeRotation = true;
+                            temp.GetComponent<Rigidbody>().angularDrag = 0f;
+                            temp.GetComponent<Rigidbody>().mass = 1f;
+                        }
+                        
+                        else {
+                            //The player was not successful.
+			    //This occurs if they try to combine 0,1,or more than 2 objects or if the objects are
+			    //incorrect for the current puzzle.
+				
+			    //This turns on the error display feedback in another function.
+                            errorMsg = true;
+
+                            //Play the error sound.
+                            errorBG.GetComponent<AudioSource>().Play();
+                          
+			    //Log some data that we can use to tweak levels later.
+                            numWrongCombos++;
+
+			    //Logic for another programmer's script that tells the player the actual descriptors of
+			    //the objects they failed to combine.
+                            objectInfo.wrongCombine = true;
+                            secondObjectInfo.wrongCombine = true;
+
+                        break;
+                    }
+                case 2: {
+                        //find shocking and evil
+                        if (checkMatchingTags("shocking", "evil") && MyObjects.Count <= 2)
+                        {
+                            //success
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Puzzle 2 Solve Time (sec)", (puzzle1Timer / 60).ToString());
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Wrong Combination Attempts To Puzzle 2", numWrongCombos.ToString());
+                            numWrongCombos = 0;
+                            puzzle1Timer = 0;
+                            //Remove old objects for new one
+                            Vector3 pos = MyObjects[0].transform.position;
+                            GameObject temp = Instantiate(puzzle2_result, transform.position + (transform.forward * 1.5f), transform.rotation);//move this to infront of camera
+                            temp.GetComponent<Rigidbody>().freezeRotation = false;
+                            temp.transform.Rotate(-90, 0, 0);
+                            temp.GetComponent<myInfo>().label = "Death by Neon";
+                            temp.name = "GlowingScythe";
+
+                            //sound
+                            testAudio1.clip = comboSuccess;
+                            testAudio1.Play();
+                            testAudio2.clip = combo2;
+                            testAudio2.Play();
+
+                            //particles
+                            presentGet.transform.position = temp.transform.position;
+                            presentGet.Play();
+                            presentGet2.transform.position = temp.transform.position;
+                            presentGet2.Play();
+                            presentGet3.transform.position = temp.transform.position;
+                            presentGet3.Play();
+                            presentGet4.transform.position = temp.transform.position;
+                            presentGet4.Play();
+                            temp.GetComponent<myInfo>().partiStart = true;
+                            detachItems();
+                            cleanCam();
+                            temp.GetComponent<Rigidbody>().useGravity = false;
+                            temp.GetComponent<Rigidbody>().freezeRotation = true;
+                            temp.GetComponent<Rigidbody>().angularDrag = 0f;
+                            temp.GetComponent<Rigidbody>().mass = 1f;
+                        }
+                       
+                        else
+                        {
+                            errorMsg = true;
+                            //play the sound
+                            errorBG.GetComponent<AudioSource>().Play();
+                            numWrongCombos++;
+                            objectInfo.wrongCombine = true;
+                            secondObjectInfo.wrongCombine = true;
+                        }
+
+                        break;
+                      
+                    }
+                case 3: {
+                        //find comedic and dramatic
+                        if (checkMatchingTags("hot", "risky") && MyObjects.Count <= 2) {
+                            //success
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Puzzle 3 Solve Time (sec)", (puzzle1Timer / 60).ToString());
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Wrong Combination Attempts To Puzzle 3", numWrongCombos.ToString());
+                            numWrongCombos = 0;
+                            puzzle1Timer = 0;
+                            //Remove old objects for new one
+                            Vector3 pos = MyObjects[0].transform.position;
+                            GameObject temp = Instantiate(puzzle3_result, transform.position + (transform.forward * 1.5f), transform.rotation);//move this to infront of camera
+                            temp.GetComponent<Rigidbody>().freezeRotation = false;
+                            temp.transform.Rotate(-90, 0, 0);
+                            temp.GetComponent<myInfo>().label = "Inevitable Spicy Poops";
+                            temp.name = "SpicyPoops";
+
+                            //sound
+                            testAudio1.clip = comboSuccess;
+                            testAudio1.Play();
+                            testAudio2.clip = combo3;
+                            testAudio2.Play();
+
+                            //particles
+                            presentGet.transform.position = temp.transform.position;
+                            presentGet.Play();
+                            presentGet2.transform.position = temp.transform.position;
+                            presentGet2.Play();
+                            presentGet3.transform.position = temp.transform.position;
+                            presentGet3.Play();
+                            presentGet4.transform.position = temp.transform.position;
+                            presentGet4.Play();
+                            temp.GetComponent<myInfo>().partiStart = true;
+
+                            detachItems();
+                            cleanCam();
+                            temp.GetComponent<Rigidbody>().useGravity = false;
+                            temp.GetComponent<Rigidbody>().freezeRotation = true;
+                            temp.GetComponent<Rigidbody>().angularDrag = 0f;
+                            temp.GetComponent<Rigidbody>().mass = 1f;
+                        }
+                       
+                        else {
+                            errorMsg = true;
+                            //play the sound
+                            errorBG.GetComponent<AudioSource>().Play();
+                            numWrongCombos++;
+                            objectInfo.wrongCombine = true;
+                            secondObjectInfo.wrongCombine = true;
+                        }
+
+                        break;
+                    }
+                case 4:
+                    {
+                        //find comedic and dramatic
+                        if (checkMatchingTags("basic", "acidic") && MyObjects.Count <= 2)
+                        {
+                            //success
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Puzzle 4 Solve Time (sec)", (puzzle1Timer / 60).ToString());
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Wrong Combination Attempts To Puzzle 4", numWrongCombos.ToString());
+                            numWrongCombos = 0;
+                            puzzle1Timer = 0;
+                            //Remove old objects for new one
+                            Vector3 pos = MyObjects[0].transform.position;
+                            GameObject temp = Instantiate(puzzle4_result, transform.position + (transform.forward * 1.5f), transform.rotation);//move this to infront of camera
+                            temp.GetComponent<myInfo>().label = "Margarita";
+                            temp.name = "Margarita";
+
+                            //sound
+                            testAudio1.clip = comboSuccess;
+                            testAudio1.Play();
+                            testAudio2.clip = combo4;
+                            testAudio2.Play();
+
+                            //particles
+                            presentGet.transform.position = temp.transform.position;
+                            presentGet.Play();
+                            presentGet2.transform.position = temp.transform.position;
+                            presentGet2.Play();
+                            presentGet3.transform.position = temp.transform.position;
+                            presentGet3.Play();
+                            presentGet4.transform.position = temp.transform.position;
+                            presentGet4.Play();
+                            temp.GetComponent<myInfo>().partiStart = true;
+
+                            detachItems();
+                            cleanCam();
+                            temp.GetComponent<Rigidbody>().useGravity = false;
+                            temp.GetComponent<Rigidbody>().freezeRotation = true;
+                            temp.GetComponent<Rigidbody>().angularDrag = 0f;
+                            temp.GetComponent<Rigidbody>().mass = 1f;
+                        }
+                       
+                        else
+                        {
+                            errorMsg = true;
+                            //play the sound
+                            errorBG.GetComponent<AudioSource>().Play();
+                            numWrongCombos++;
+                            puzzle1Timer = 0;
+                            objectInfo.wrongCombine = true;
+                            secondObjectInfo.wrongCombine = true;
+
+                        break;
+                    }
+                case 5:
+                    {
+                        
+                        //find tasty and explosive
+                        if (checkMatchingTags("tasty", "explosive") && MyObjects.Count <= 2)
+                        {
+                            //success
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Puzzle 5 Solve Time (sec)", (puzzle1Timer / 60).ToString());
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Wrong Combination Attempts To Puzzle 5", numWrongCombos.ToString());
+                            numWrongCombos = 0;
+                            puzzle1Timer = 0;
+                            //Remove old objects for new one
+                            Vector3 pos = MyObjects[0].transform.position;
+                            GameObject temp = Instantiate(puzzle5_result, transform.position + (transform.forward * 1.5f), transform.rotation);    //move this to infront of camera
+
+                            //sound
+                            testAudio1.clip = comboSuccess;
+                            testAudio1.Play();
+                            testAudio2.clip = combo5;
+                            testAudio2.Play();
+
+                            //particles
+                            presentGet.transform.position = temp.transform.position;
+                            presentGet.Play();
+                            presentGet2.transform.position = temp.transform.position;
+                            presentGet2.Play();
+                            presentGet3.transform.position = temp.transform.position;
+                            presentGet3.Play();
+                            presentGet4.transform.position = temp.transform.position;
+                            presentGet4.Play();
+                            temp.GetComponent<myInfo>().partiStart = true;
+                            temp.GetComponent<myInfo>().label = "Popcorn";
+                            temp.name = "Popcorn";
+                            detachItems();
+                            cleanCam();
+                            temp.GetComponent<Rigidbody>().useGravity = false;
+                            temp.GetComponent<Rigidbody>().freezeRotation = true;
+                            temp.GetComponent<Rigidbody>().angularDrag = 0f;
+                            temp.GetComponent<Rigidbody>().mass = 1f;
+                        }
+                        
+                        else
+                        {
+                            errorMsg = true;
+                            //play the sound
+                            errorBG.GetComponent<AudioSource>().Play();
+                            numWrongCombos++;
+                            objectInfo.wrongCombine = true;
+                            secondObjectInfo.wrongCombine = true;
+
+                        break;
+                       
+                    }
+                case 6:
+                    {
+                        //find comedic and dramatic
+                        if (checkMatchingTags("funky", "medicinal") && MyObjects.Count <= 2)
+                        {
+                            //success
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Puzzle 6 Solve Time (sec)", (puzzle1Timer / 60).ToString());
+                            Tinylytics.AnalyticsManager.LogCustomMetric("Wrong Combination Attempts To Puzzle 6", numWrongCombos.ToString());
+                            numWrongCombos = 0;
+                            puzzle1Timer = 0;
+                            //Remove old objects for new one
+                            Vector3 pos = MyObjects[0].transform.position;
+                            GameObject temp = Instantiate(puzzle6_result, transform.position + (transform.forward * 1.5f), transform.rotation);//move this to infront of camera
+                            temp.GetComponent<myInfo>().label = "Boogie RX";
+                            temp.name = "DiscoPills";
+
+                            //sound
+                            testAudio1.clip = comboSuccess;
+                            testAudio1.Play();
+                            testAudio2.clip = combo6;
+                            testAudio2.Play();
+
+                            //particles
+                            presentGet.transform.position = temp.transform.position;
+                            presentGet.Play();
+                            presentGet2.transform.position = temp.transform.position;
+                            presentGet2.Play();
+                            presentGet3.transform.position = temp.transform.position;
+                            presentGet3.Play();
+                            presentGet4.transform.position = temp.transform.position;
+                            presentGet4.Play();
+                            temp.GetComponent<myInfo>().partiStart = true;
+                            detachItems();
+                            cleanCam();
+                            temp.GetComponent<Rigidbody>().useGravity = false;
+                            temp.GetComponent<Rigidbody>().freezeRotation = true;
+                            temp.GetComponent<Rigidbody>().angularDrag = 0f;
+                            temp.GetComponent<Rigidbody>().mass = 1f;
+                        }
+                        
+                        else
+                        {
+                            errorMsg = true;
+                            //play the sound
+                            errorBG.GetComponent<AudioSource>().Play();
+                            numWrongCombos++;
+                            objectInfo.wrongCombine = true;
+                            secondObjectInfo.wrongCombine = true;
+                        }
+
+                        break;
+                    }
+            }
+        }
+    }
